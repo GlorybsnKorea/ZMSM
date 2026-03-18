@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.3, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<title>ASD Tugboat (Z-Peller) Simulator - Mobile Optimized Pro3</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:100vw;height:100vh;overflow:hidden;background:#080e18;font-family:'Courier New',monospace;color:#c0d4e8;user-select:none;display:flex;flex-direction:column}
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:5px 14px;background:rgba(4,10,20,0.98);border-bottom:2px solid rgba(60,90,60,0.5);font-size:11px;flex-shrink:0;flex-wrap:wrap;gap:10px;z-index:10}
+#bridgewrap{flex:6;position:relative;min-height:0;background:#000;overflow:hidden}
+#bridgeCanvas{width:100%;height:100%;display:block}
+#winFrame{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none}
+#keyhint{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.65);border-radius:5px;padding:5px 9px;font-size:9px;line-height:1.7;color:rgba(180,200,180,0.55);pointer-events:none}
+#controlWrap{flex:4;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(180deg,#6a8a62,#5a7a52);border-top:3px solid rgba(80,120,70,0.7);touch-action:pinch-zoom}
+#controlPanel{padding:4px 10px;display:flex;align-items:center;justify-content:center;gap:18px;transform-origin:center center}
+.gc{display:flex;flex-direction:column;align-items:center;gap:2px}
+.gt{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#f0f8e8}
+.sec-title{font-size:9px;font-weight:700;letter-spacing:2px;color:#e0f0d0;border:1px solid rgba(200,230,180,0.4);padding:2px 14px;border-radius:3px;margin-bottom:4px;background:rgba(0,0,0,0.2);text-align:center}
+.qbtn{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.3);color:#e0f0d8;padding:3px 8px;border-radius:3px;cursor:pointer;font-size:9px;font-weight:700;transition:all 0.2s;}
+.qbtn:hover{background:rgba(255,255,255,0.25);}
+kbd{background:#333;border:1px solid #555;border-radius:3px;padding:1px 4px;font-family:monospace;color:#ffcc00;font-size:10px;}
+
+/* 팝업창 스크롤바 디자인 */
+#helpPopupBody::-webkit-scrollbar { width: 5px; }
+#helpPopupBody::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+#helpPopupBody::-webkit-scrollbar-thumb { background: rgba(80,140,90,0.5); border-radius: 3px; }
+
+/* ★ 모바일 최적화 미디어 쿼리 복구 */
+@media(max-width:900px){body{flex-direction:column} #topbar{font-size:10px;padding:3px 8px;gap:6px} #topbar b{font-size:10px} #keyhint{display:none}}
+@media(max-height:500px){#bridgewrap{flex:5} #controlWrap{flex:5}}
+@media(max-width:500px){#topbar span{font-size:9px}}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <span style="color:#8ad870;font-weight:700;font-size:13px;letter-spacing:1px">⚓ ASD TUGBOAT (Z-Peller) system <span style="color:#446644;font-size:9px">FIXED PITCH PROPELLER</span></span>
+  <div style="display:flex;gap:16px;align-items:center;font-size:11px;flex-wrap:wrap;">
+    <span>HDG <b id="valHdg" style="color:#edc740">090°</b></span>
+    <span>SPD <b id="valSpd" style="color:#4dd88a">0.0 kts</b></span>
+    <span>STR <b id="valStr" style="color:#aaa">0°</b></span>
+    <span>P-RPM <b id="valPRpm" style="color:#f0a040">OFF</b></span>
+    <span>S-RPM <b id="valSRpm" style="color:#f0a040">OFF</b></span>
+    <span id="playStatus" style="color:#556655;font-weight:700"></span>
+    
+    <button class="qbtn" onclick="toggleFullScreen()" style="background:rgba(100,150,255,0.2);border-color:rgba(100,150,255,0.5);color:#88ccff;padding:3px 10px;">⛶ FULLSCREEN</button>
+    <button class="qbtn" onclick="toggleView()" id="viewBtn" style="background:rgba(0,238,136,0.2);border-color:rgba(0,238,136,0.5);color:#00ee88;padding:3px 10px;">👁️ Drone View</button>
+    <button class="qbtn" onclick="toggleHelp()" style="background:rgba(0,180,255,0.2);border-color:rgba(0,180,255,0.5);color:#40ccff;padding:3px 10px;">? HELP</button>
+  </div>
+</div>
+
+<div id="bridgewrap">
+  <canvas id="bridgeCanvas"></canvas>
+  <svg id="winFrame" xmlns="http://www.w3.org/2000/svg" style="display:none"></svg>
+  <div id="keyhint">Steer: A/D · Port Indiv: W/S · Stbd Indiv: ↑/↓ · Gov: Q/E, Z/X · Play: P</div>
+  
+  <div id="helpPopup" style="display:none; flex-direction:column; position:absolute; top:10px; right:14px; background:rgba(15,25,20,0.95); border:2px solid rgba(80,140,90,0.7); border-radius:8px; color:#d0e0d0; z-index:2000; box-shadow:0 10px 30px rgba(0,0,0,0.8); width:310px; max-height: calc(100% - 20px); backdrop-filter:blur(3px); overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px 8px;border-bottom:1px solid rgba(255,255,255,0.15);flex-shrink:0;">
+      <b style="color:#8ad870;font-size:13px;letter-spacing:1px;">⚓ USER MANUAL (Z-Peller)</b>
+      <button onclick="toggleHelp()" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;margin-left:10px;">✕</button>
+    </div>
+    <div id="helpPopupBody" style="font-size:11px;line-height:1.9;padding:8px 16px 16px;overflow-y:auto;flex-grow:1;">
+      <b style="color:#40ccff;">[ STEERING CONTROLS ]</b><br>
+      • <b>Combo Wheel:</b> <kbd>A</kbd> / <kbd>D</kbd> or Drag Wheel<br>
+      • <b>Port Lever:</b> <kbd>W</kbd>(↑) / <kbd>S</kbd>(↓) or Drag<br>
+      • <b>Stbd Lever:</b> <kbd>↑</kbd>(↑) / <kbd>↓</kbd>(↓) or Drag<br>
+      <div style="margin:8px 0;border-top:1px dashed rgba(255,255,255,0.1);"></div>
+      <b style="color:#ff6666;">[ GOVERNOR / CLUTCH ]</b><br>
+      • <b>Port Gov:</b> <kbd>Q</kbd>(+) / <kbd>E</kbd>(-) or Drag<br>
+      • <b>Stbd Gov:</b> <kbd>Z</kbd>(+) / <kbd>X</kbd>(-) or Drag<br>
+      <span style="color:#aaa;font-size:10px;">* FPP Mode: Index 1 (410 RPM) ~ 10 (750 RPM)</span><br>
+      <div style="margin:8px 0;border-top:1px dashed rgba(255,255,255,0.1);"></div>
+      <b style="color:#edc740;">[ SYSTEM ]</b><br>
+      • <b>Play / Pause:</b> <kbd>P</kbd> or ▶ PLAY Button<br>
+      • <b>Emergency Stop:</b> <kbd>Spacebar</kbd> (All Stop)
+    </div>
+  </div>
+</div>
+
+<div id="controlWrap">
+<div id="controlPanel">
+  <div class="gc"><div class="sec-title">COMPASS</div><canvas id="compassCanvas" width="170" height="175"></canvas></div>
+  <div class="gc">
+    <div class="sec-title">STEERING — COMBINATION HANDLE</div>
+    <div style="display:flex;align-items:flex-start;gap:4px">
+      <div class="gc"><span class="gt" style="color:#ff6666">PORT</span><canvas id="portGauge" width="170" height="175"></canvas></div>
+      <canvas id="comboCanvas" width="260" height="235" style="cursor:grab;touch-action:none;margin-top:18px"></canvas>
+      <div class="gc"><span class="gt" style="color:#66ff88">STB'D</span><canvas id="stbdGauge" width="170" height="175"></canvas></div>
+    </div>
+  </div>
+  <div class="gc">
+    <div class="sec-title">GOVERNOR (Z-Peller)</div>
+    <canvas id="govCanvas" width="220" height="215" style="cursor:pointer;touch-action:none"></canvas>
+    <div style="display:flex;gap:6px;margin-top:2px">
+      <button class="qbtn" onclick="aS()">⬛ ALL STOP</button>
+      <button id="playBtn" style="background:rgba(0,0,0,0.25);border:2px solid rgba(0,255,100,0.5);color:#00ee88;padding:5px 14px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:700" onclick="togglePlay()">▶ PLAY</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+
+// ★ 모바일 크로스 브라우징 풀스크린 로직 완벽 복구
+function toggleFullScreen() {
+  if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement) {
+    if (document.documentElement.requestFullscreen) { document.documentElement.requestFullscreen(); }
+    else if (document.documentElement.mozRequestFullScreen) { document.documentElement.mozRequestFullScreen(); }
+    else if (document.documentElement.webkitRequestFullscreen) { document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT); }
+  } else {
+    if (document.cancelFullScreen) { document.cancelFullScreen(); }
+    else if (document.mozCancelFullScreen) { document.mozCancelFullScreen(); }
+    else if (document.webkitCancelFullScreen) { document.webkitCancelFullScreen(); }
+  }
+  setTimeout(resizeBridge, 300);
+}
+
+function toggleHelp(){
+  var p = document.getElementById('helpPopup');
+  if (p.style.display === 'none' || p.style.display === '') { p.style.display = 'flex'; } 
+  else { p.style.display = 'none'; }
+}
+
+var isThirdPersonView = true;
+function toggleView() {
+  isThirdPersonView = !isThirdPersonView;
+  var btn = document.getElementById('viewBtn');
+  if(isThirdPersonView) {btn.innerHTML='👁️ Drone View';btn.style.color='#00ee88';btn.style.borderColor='rgba(0,238,136,0.5)';}
+  else {btn.innerHTML='👁️ Bridge View';btn.style.color='#ffcc00';btn.style.borderColor='rgba(200,150,0,0.5)';}
+}
+
+// =========================================================================
+// 1. 핵심 로직 및 FPP 가바나 변환
+// =========================================================================
+var D=Math.PI/180, R2D=180/Math.PI;
+var ship={x:0,y:0,vx:0,vy:0,hd:Math.PI/2,om:0,st:0,pt:0,sb:0,pGov:0,sGov:0}; 
+var playing=false, pk={}, lt=0;
+
+function govRpm(gov){
+  if(gov < 1.0) return 0;
+  return Math.round(410 + ((gov-1)/9)*340); 
+}
+function govOn(gov){return gov>=1.0;}
+
+document.addEventListener('keydown',function(e){if((e.key==='p'||e.key==='P')&&!pk[e.key])togglePlay();pk[e.key]=true;if([' ','ArrowUp','ArrowDown'].indexOf(e.key)!==-1)e.preventDefault();});
+document.addEventListener('keyup',function(e){pk[e.key]=false;});
+
+function getPortThrust(lv,st){return((90-lv-st)%360+360)%360;}
+function getStbdThrust(lv,st){return((270+lv-st)%360+360)%360;}
+function rR(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();}
+function drawKnobHandle(c,cx,cy,col,size){
+  size=size||14;var glow=c.createRadialGradient(cx,cy,size*0.3,cx,cy,size*1.8);glow.addColorStop(0,col.replace(')',',0.35)').replace('rgb','rgba'));glow.addColorStop(1,'rgba(0,0,0,0)');c.beginPath();c.arc(cx,cy,size*1.8,0,Math.PI*2);c.fillStyle=glow;c.fill();
+  var body=c.createRadialGradient(cx-size*0.25,cy-size*0.25,size*0.05,cx,cy,size);body.addColorStop(0,'#555');body.addColorStop(0.35,'#181818');body.addColorStop(1,'#050505');c.beginPath();c.arc(cx,cy,size,0,Math.PI*2);c.fillStyle=body;c.fill();c.strokeStyle='rgba(80,90,80,0.6)';c.lineWidth=1;c.stroke();
+  var ctr=c.createRadialGradient(cx-size*0.2,cy-size*0.25,size*0.05,cx-size*0.1,cy-size*0.1,size*0.55);ctr.addColorStop(0,'rgba(255,255,255,0.9)');ctr.addColorStop(0.4,col.replace(')',',0.7)').replace('rgb','rgba'));ctr.addColorStop(1,'rgba(0,0,0,0)');c.beginPath();c.arc(cx-size*0.1,cy-size*0.1,size*0.55,0,Math.PI*2);c.fillStyle=ctr;c.fill();
+}
+
+// =========================================================================
+// 2. 완벽 복원된 UI 드로잉 (피드백 게이지, 나침반, 가바나, 조타패널)
+// =========================================================================
+
+function drawGauge(id,needleCol,thrustDeg){
+  var cv=document.getElementById(id),c=cv.getContext('2d');c.clearRect(0,0,170,175);var cx=85,cy=85,r=62;
+  c.beginPath();c.arc(cx,cy,r+12,0,Math.PI*2);var bg=c.createRadialGradient(cx-4,cy-4,r-4,cx,cy,r+12);bg.addColorStop(0,'#b0b8b0');bg.addColorStop(0.5,'#888e88');bg.addColorStop(1,'#606860');c.fillStyle=bg;c.fill();c.strokeStyle='#444';c.lineWidth=1.5;c.stroke();
+  c.beginPath();c.arc(cx,cy,r+3,0,Math.PI*2);c.fillStyle='#2a2a2a';c.fill();
+  var fg=c.createRadialGradient(cx-10,cy-10,4,cx,cy,r+2);fg.addColorStop(0,'#eaeae2');fg.addColorStop(0.65,'#d8d8d0');fg.addColorStop(1,'#c8c8c0');c.beginPath();c.arc(cx,cy,r+2,0,Math.PI*2);c.fillStyle=fg;c.fill();
+  for(var deg=0;deg<360;deg+=10){
+    var rad=(deg-90)*D,isMaj=(deg%30===0),oRr=r,iRr=isMaj?(r-14):(r-7);c.beginPath();c.moveTo(cx+Math.cos(rad)*iRr,cy+Math.sin(rad)*iRr);c.lineTo(cx+Math.cos(rad)*oRr,cy+Math.sin(rad)*oRr);c.strokeStyle=isMaj?'rgba(0,0,0,0.75)':'rgba(0,0,0,0.22)';c.lineWidth=isMaj?1.6:0.7;c.stroke();
+    if(isMaj){var sv=(deg<=180)?(90-deg):(deg-270),lbl;if(sv>0)lbl='AH'+sv;else if(sv<0)lbl='AS'+Math.abs(sv);else lbl='0';c.fillStyle='#111';c.font='bold 9px "Courier New",monospace';c.textAlign='center';c.textBaseline='middle';c.fillText(lbl,cx+Math.cos(rad)*(r-24),cy+Math.sin(rad)*(r-24));}
+  }
+  c.fillStyle='#cc9900';c.beginPath();c.moveTo(cx,cy-r-3);c.lineTo(cx-5,cy-r+6);c.lineTo(cx+5,cy-r+6);c.closePath();c.fill();
+  var nRad=(thrustDeg-90)*D,nCos=Math.cos(nRad),nSin=Math.sin(nRad),tipLen=r-6,baseLen=16,halfW=9,pX=-nSin,pY=nCos;var tipX=cx+nCos*tipLen,tipY=cy+nSin*tipLen,baseX=cx-nCos*baseLen,baseY=cy-nSin*baseLen;
+  c.save();c.beginPath();c.moveTo(tipX+2,tipY+2);c.lineTo(baseX+pX*halfW+2,baseY+pY*halfW+2);c.lineTo(baseX-pX*halfW+2,baseY-pY*halfW+2);c.closePath();c.fillStyle='rgba(0,0,0,0.2)';c.fill();c.restore();
+  c.beginPath();c.moveTo(tipX,tipY);c.lineTo(baseX+pX*halfW,baseY+pY*halfW);c.lineTo(baseX-pX*halfW,baseY-pY*halfW);c.closePath();c.fillStyle='#111';c.fill();c.strokeStyle='rgba(60,60,60,0.6)';c.lineWidth=0.8;c.stroke();
+  c.beginPath();c.moveTo(cx+nCos*tipLen*0.15,cy+nSin*tipLen*0.15);c.lineTo(cx+nCos*tipLen*0.85,cy+nSin*tipLen*0.85);c.strokeStyle='#ffffff';c.lineWidth=2;c.lineCap='round';c.stroke();
+  var ahLen=6,ahAng=0.45;c.beginPath();c.moveTo(cx+nCos*tipLen*0.85,cy+nSin*tipLen*0.85);c.lineTo(cx+nCos*tipLen*0.85-nCos*ahLen+pX*ahLen*ahAng,cy+nSin*tipLen*0.85-nSin*ahLen+pY*ahLen*ahAng);c.moveTo(cx+nCos*tipLen*0.85,cy+nSin*tipLen*0.85);c.lineTo(cx+nCos*tipLen*0.85-nCos*ahLen-pX*ahLen*ahAng,cy+nSin*tipLen*0.85-nSin*ahLen-pY*ahLen*ahAng);c.strokeStyle='#ffffff';c.lineWidth=1.8;c.stroke();c.lineCap='butt';
+  c.beginPath();c.arc(cx+nCos*tipLen*0.18,cy+nSin*tipLen*0.18,3.5,0,Math.PI*2);c.fillStyle='#00ccee';c.fill();c.strokeStyle='rgba(0,180,220,0.6)';c.lineWidth=1;c.stroke();
+  c.beginPath();c.arc(cx,cy,7,0,Math.PI*2);var hg=c.createRadialGradient(cx-2,cy-2,1,cx,cy,7);hg.addColorStop(0,'#777');hg.addColorStop(1,'#222');c.fillStyle=hg;c.fill();c.strokeStyle='#888';c.lineWidth=1.5;c.stroke();c.beginPath();c.arc(cx,cy,3,0,Math.PI*2);c.fillStyle='#bbb';c.fill();
+}
+
+var compCv=document.getElementById('compassCanvas'),compCtx=compCv.getContext('2d');
+function drawCompass(){
+  var c=compCtx,W=170,H=175,cx=85,cy=87.5,R=73;c.clearRect(0,0,W,H);
+  c.beginPath();c.arc(cx,cy,R+6,0,Math.PI*2);c.fillStyle='rgba(0,0,0,0.45)';c.fill();
+  c.beginPath();c.arc(cx,cy,R+4,0,Math.PI*2);var bz=c.createRadialGradient(cx-4,cy-4,R-10,cx,cy,R+4);bz.addColorStop(0,'#b8c0b8');bz.addColorStop(0.5,'#808880');bz.addColorStop(1,'#505850');c.fillStyle=bz;c.fill();c.strokeStyle='#333';c.lineWidth=2;c.stroke();
+  c.beginPath();c.arc(cx,cy,R,0,Math.PI*2);c.fillStyle='#12120f';c.fill();
+  var hdgDeg=((ship.hd*R2D)+360)%360;c.save();c.translate(cx,cy);c.rotate(-hdgDeg*D);
+  for(var deg=0;deg<360;deg+=5){var rad=deg*D,isMaj=(deg%30===0),isMid=(deg%10===0),oR=R-2,iR=isMaj?(R-20):(isMid?(R-13):(R-8));c.beginPath();c.moveTo(Math.sin(rad)*iR,-Math.cos(rad)*iR);c.lineTo(Math.sin(rad)*oR,-Math.cos(rad)*oR);c.strokeStyle=isMaj?'rgba(255,255,230,0.95)':(isMid?'rgba(200,200,180,0.6)':'rgba(160,160,140,0.3)');c.lineWidth=isMaj?2.2:(isMid?1.2:0.6);c.stroke();}
+  [{a:0,l:'N',c:'#ff3333'},{a:90,l:'E',c:'#e0e0cc'},{a:180,l:'S',c:'#e0e0cc'},{a:270,l:'W',c:'#e0e0cc'}].forEach(function(cd){c.fillStyle=cd.c;c.font='bold 16px "Courier New",monospace';c.textAlign='center';c.textBaseline='middle';c.fillText(cd.l,Math.sin(cd.a*D)*(R-34),-Math.cos(cd.a*D)*(R-34));});
+  [30,60,120,150,210,240,300,330].forEach(function(deg){c.fillStyle='rgba(200,200,180,0.7)';c.font='bold 11px "Courier New",monospace';c.textAlign='center';c.textBaseline='middle';c.fillText(deg,Math.sin(deg*D)*(R-34),-Math.cos(deg*D)*(R-34));});
+  c.restore();
+  c.fillStyle='#edc740';c.beginPath();c.moveTo(cx,cy-R+1);c.lineTo(cx-6,cy-R+12);c.lineTo(cx+6,cy-R+12);c.closePath();c.fill();c.strokeStyle='rgba(200,160,0,0.6)';c.lineWidth=1;c.stroke();
+  rR(c,cx-36,cy+R-18,72,22,5);c.fillStyle='rgba(0,0,0,0.88)';c.fill();c.strokeStyle='rgba(237,199,64,0.5)';c.lineWidth=1;c.stroke();c.fillStyle='#edc740';c.font='bold 16px "Courier New",monospace';c.textAlign='center';c.textBaseline='middle';c.fillText(('000'+Math.round(hdgDeg)).slice(-3)+'\u00B0',cx,cy+R-7);
+}
+
+var govCv=document.getElementById('govCanvas'),govCtx=govCv.getContext('2d');
+function drawGovColumn(c,gov,col,label,isPort){
+  var tX=isPort?95:125, tT=22, tB=155, trkH=tB-tT;
+  var boxX=isPort?16:148, labelX=isPort?44:176;
+  c.fillStyle=col;c.font='bold 10px "Courier New",monospace';c.textAlign='center';c.textBaseline='middle';c.fillText(label,labelX,11);
+  rR(c,tX-5,tT,10,trkH,5);var trkG=c.createLinearGradient(tX-5,0,tX+5,0);trkG.addColorStop(0,'rgba(50,50,45,0.9)');trkG.addColorStop(0.5,'rgba(70,75,65,0.7)');trkG.addColorStop(1,'rgba(40,40,35,0.9)');c.fillStyle=trkG;c.fill();c.strokeStyle='rgba(80,100,80,0.5)';c.lineWidth=1;c.stroke();
+  for(var i=0;i<=10;i++){
+    var yy=tB-(i/10)*trkH;
+    c.beginPath();c.moveTo(isPort?tX-12:tX+6,yy);c.lineTo(isPort?tX-6:tX+12,yy);
+    if(i===1){ c.strokeStyle='rgba(220,60,60,0.8)'; c.lineWidth=1.5; c.setLineDash([3,2]); }
+    else { c.strokeStyle='rgba(220,230,210,0.7)'; c.lineWidth=1; c.setLineDash([]); }
+    c.stroke(); c.setLineDash([]);
+    c.fillStyle='#e8f0e0';c.font='bold 12px "Courier New",monospace';c.textAlign=isPort?'right':'left';c.textBaseline='middle';
+    c.fillText(''+i,isPort?(tX-14):(tX+14),yy);
+  }
+  var hY=tB-(gov/10)*trkH;
+  drawKnobHandle(c,tX,hY,gov>=1.0?'rgb(200,160,40)':'rgb(160,60,60)',12);
+  var boxY=Math.max(5,Math.min(215-36-5,hY-18));rR(c,boxX,boxY,56,36,5);c.fillStyle='rgba(0,0,0,0.92)';c.fill();c.strokeStyle=gov>=1.0?'rgba(0,220,100,0.6)':'rgba(220,60,60,0.55)';c.lineWidth=1.5;c.stroke();
+  c.textAlign='center';c.textBaseline='middle';
+  if(gov>=1.0){c.fillStyle='#00ee88';c.font='bold 15px "Courier New",monospace';c.fillText(govRpm(gov),boxX+28,boxY+12);c.fillStyle='rgba(0,180,100,0.7)';c.font='bold 7px monospace';c.fillText('RPM',boxX+28,boxY+26);
+  }else{c.fillStyle='#ee4444';c.font='bold 9px "Courier New",monospace';c.fillText('CLUTCH',boxX+28,boxY+12);c.fillText('OFF',boxX+28,boxY+26);}
+}
+function drawGov(){
+  var c=govCtx;c.clearRect(0,0,220,215);rR(c,2,2,216,211,8);var pgrd=c.createLinearGradient(0,0,0,215);pgrd.addColorStop(0,'rgba(85,115,78,0.97)');pgrd.addColorStop(1,'rgba(70,100,65,0.97)');c.fillStyle=pgrd;c.fill();c.strokeStyle='rgba(120,160,110,0.5)';c.lineWidth=1.5;c.stroke();
+  c.beginPath();c.moveTo(110,8);c.lineTo(110,207);c.strokeStyle='rgba(100,140,90,0.3)';c.lineWidth=1;c.stroke();
+  drawGovColumn(c,ship.pGov,'#ff6666','PORT',true);drawGovColumn(c,ship.sGov,'#66ff88','STBD',false);
+}
+
+var cc=document.getElementById('comboCanvas'),cx2=cc.getContext('2d');
+function dCH(){
+  var c=cx2;c.clearRect(0,0,260,235);
+  
+  function drawSlot(lx, ly, val, label, col) {
+    c.save(); c.translate(lx, ly);
+    rR(c, -14, -48, 28, 96, 5); c.fillStyle='#2a2a26'; c.fill(); c.strokeStyle='#444'; c.lineWidth=1; c.stroke();
+    c.beginPath(); c.moveTo(-10, 0); c.lineTo(10, 0); c.strokeStyle='rgba(255,255,255,0.2)'; c.stroke();
+    
+    // AH90 / 0 / AS90 라벨링 복구
+    c.font='bold 10px monospace';
+    c.textAlign=(lx < 130)?'right':'left';
+    c.fillStyle='rgba(200,220,200,0.8)';
+    var textXOffset = (lx < 130)?-18:18;
+    c.fillText('AH90', textXOffset, -36);
+    c.fillText('0', textXOffset, 0);
+    c.fillText('AS90', textXOffset, 36);
+
+    var hy = -(val / 90) * 36; 
+    drawKnobHandle(c, 0, hy, col, 14);
+    
+    c.fillStyle=col; c.font='bold 11px monospace'; c.textAlign='center'; c.fillText(label, 0, -58);
+    c.restore();
+  }
+  drawSlot(90, 70, ship.pt, 'PORT', 'rgb(220,60,60)');
+  drawSlot(170, 70, ship.sb, 'STBD', 'rgb(60,220,100)');
+  
+  // 중앙: 콤비네이션 각도 표시기
+  rR(c, 130-24, 125-10, 48, 20, 4); c.fillStyle='rgba(0,0,0,0.8)'; c.fill();
+  var stV=Math.round(ship.st), stTxt=stV===0?'0\u00B0':(stV<0?'P '+Math.abs(stV)+'\u00B0':'S '+stV+'\u00B0');
+  c.fillStyle='#00ee88'; c.font='bold 12px monospace'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(stTxt, 130, 125);
+
+  // 하단: 원형 스티어링 핸들
+  c.save(); c.translate(130, 185);
+  c.rotate(ship.st * D);
+  var wr = 40;
+  c.beginPath(); c.arc(0,0,wr,0,Math.PI*2); c.strokeStyle='#222'; c.lineWidth=12; c.stroke();
+  c.beginPath(); c.arc(0,0,wr,0,Math.PI*2); c.strokeStyle='#d8d8d0'; c.lineWidth=6; c.stroke();
+  for(var i=0; i<3; i++){
+    c.save(); c.rotate(i*120*D + 90*D);
+    c.beginPath(); c.moveTo(0,0); c.lineTo(0,-wr); c.strokeStyle='#333'; c.lineWidth=8; c.stroke();
+    c.restore();
+  }
+  c.beginPath(); c.arc(0,0,12,0,Math.PI*2); c.fillStyle='#111'; c.fill();
+  c.beginPath(); c.arc(0,-wr+6,9,0,Math.PI*2); c.fillStyle='#bbb'; c.fill();
+  c.beginPath(); c.arc(0,-wr+6,6,0,Math.PI*2); c.fillStyle='#000'; c.fill();
+  c.restore();
+}
+
+// =========================================================================
+// 3. 입력 이벤트
+// =========================================================================
+var mouseDrag=null, wSA=0, wSS=0, touches={};
+
+function getCX_Combo(e) {var r = cc.getBoundingClientRect(); return (e.clientX - r.left) / r.width * 260;}
+function getCY_Combo(e) {var r = cc.getBoundingClientRect(); return (e.clientY - r.top) / r.height * 235;}
+function doThY_Combo(cY, mode) {
+  var r = cc.getBoundingClientRect(); var y = (cY - r.top) / r.height * 235;
+  var v = Math.max(-90, Math.min(90, ((70 - y) / 36) * 90));
+  if (mode === 'pt') ship.pt = v; else ship.sb = v;
+}
+function doStXY_Combo(cX, cY, startAngle, startSt) {
+  var r = cc.getBoundingClientRect(); var x = (cX - r.left) / r.width * 260, y = (cY - r.top) / r.height * 235;
+  var angle = Math.atan2(x - 130, -(y - 185)) * R2D;
+  ship.st = Math.max(-90, Math.min(90, startSt + (angle - startAngle)));
+}
+function getComboHit(cX, cY) {
+  var r = cc.getBoundingClientRect(), x = (cX - r.left) / r.width * 260, y = (cY - r.top) / r.height * 235;
+  if (y > 135) return 'wh'; if (x < 130) return 'pt'; return 'sb';
+}
+
+cc.addEventListener('mousedown', function(e) {
+  var m = getComboHit(e.clientX, e.clientY); mouseDrag = m;
+  if (m === 'wh') {
+    var r = cc.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 260, y = (e.clientY - r.top) / r.height * 235;
+    wSA = Math.atan2(x - 130, -(y - 185)) * R2D; wSS = ship.st;
+  } else { doThY_Combo(e.clientY, m); }
+});
+cc.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  for(var i=0; i<e.changedTouches.length; i++) {
+    var t = e.changedTouches[i], m = getComboHit(t.clientX, t.clientY), info = { mode: m };
+    if (m === 'wh') {
+      var r = cc.getBoundingClientRect(), x = (t.clientX - r.left) / r.width * 260, y = (t.clientY - r.top) / r.height * 235;
+      info.wSA = Math.atan2(x - 130, -(y - 185)) * R2D; info.wSS = ship.st;
+    } else { doThY_Combo(t.clientY, m); }
+    touches[t.identifier] = info;
+  }
+}, {passive: false});
+
+function getCY(e, cv){var r=cv.getBoundingClientRect(); var cY=e.clientY; if(e.touches && e.touches.length>0) cY=e.touches[0].clientY; return (cY-r.top)/r.height*cv.height;}
+function isPortGov(cX) {var r = govCv.getBoundingClientRect(); return (cX - r.left) / r.width < 0.5;}
+function doGovY(cY, isPort) {
+  var r = govCv.getBoundingClientRect(); var v = (1 - ((cY - r.top) / r.height * 215 - 22) / (155 - 22)) * 10;
+  v = Math.max(0, Math.min(10, v)); if (isPort) ship.pGov = v; else ship.sGov = v;
+}
+
+govCv.addEventListener('mousedown', function(e) {mouseDrag = isPortGov(e.clientX) ? 'gvP' : 'gvS'; doGovY(e.clientY, mouseDrag === 'gvP');});
+govCv.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  for (var i = 0; i < e.changedTouches.length; i++) {
+    var t = e.changedTouches[i], ip = isPortGov(t.clientX); touches[t.identifier] = { mode: ip ? 'gvP' : 'gvS' }; doGovY(t.clientY, ip);
+  }
+}, {passive: false});
+
+window.addEventListener('mousemove', function(e) {
+  if (!mouseDrag) return;
+  if (mouseDrag === 'wh') { doStXY_Combo(e.clientX, e.clientY, wSA, wSS); }
+  else if (mouseDrag === 'pt' || mouseDrag === 'sb') { doThY_Combo(e.clientY, mouseDrag); }
+  else if (mouseDrag === 'gvP' || mouseDrag === 'gvS') { doGovY(e.clientY, mouseDrag === 'gvP'); }
+});
+window.addEventListener('touchmove', function(e) {
+  var has = false; for (var k in touches) has = true; if (!has) return; e.preventDefault();
+  for (var i = 0; i < e.changedTouches.length; i++) {
+    var t = e.changedTouches[i], info = touches[t.identifier]; if (!info) continue;
+    if (info.mode === 'wh') { doStXY_Combo(t.clientX, t.clientY, info.wSA, info.wSS); }
+    else if (info.mode === 'pt' || info.mode === 'sb') { doThY_Combo(t.clientY, info.mode); }
+    else if (info.mode === 'gvP' || info.mode === 'gvS') { doGovY(t.clientY, info.mode === 'gvP'); }
+  }
+}, {passive: false});
+window.addEventListener('mouseup', function() { mouseDrag = null; });
+window.addEventListener('touchend', function(e) {for (var i = 0; i < e.changedTouches.length; i++) {delete touches[e.changedTouches[i].identifier];}});
+
+function pI(){
+  if(pk['a']||pk['A'])ship.st=Math.max(-90,ship.st-0.6);if(pk['d']||pk['D'])ship.st=Math.min(90,ship.st+0.6);
+  if(pk['w']||pk['W'])ship.pt=Math.min(90,ship.pt+1.2);if(pk['s']||pk['S'])ship.pt=Math.max(-90,ship.pt-1.2);
+  if(pk['ArrowUp'])ship.sb=Math.min(90,ship.sb+1.2);if(pk['ArrowDown'])ship.sb=Math.max(-90,ship.sb-1.2);
+  if(pk['q']||pk['Q'])ship.pGov=Math.min(10,ship.pGov+0.1);if(pk['e']||pk['E'])ship.pGov=Math.max(0,ship.pGov-0.25);
+  if(pk['z']||pk['Z'])ship.sGov=Math.min(10,ship.sGov+0.1);if(pk['x']||pk['X'])ship.sGov=Math.max(0,ship.sGov-0.25);
+  if(pk[' ']){ship.pt*=0.88;ship.sb*=0.88;ship.pGov=Math.max(0,ship.pGov-0.25);ship.sGov=Math.max(0,ship.sGov-0.25);}
+}
+
+// =========================================================================
+// 4. THREE.JS 3D 선박 렌더링 및 물리엔진 (원본 복구)
+// =========================================================================
+var bwEl=document.getElementById('bridgewrap'),bCanvas=document.getElementById('bridgeCanvas');
+var renderer=new THREE.WebGLRenderer({canvas:bCanvas,antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+var scene=new THREE.Scene(); scene.background=new THREE.Color(0x004488);
+var camera=new THREE.PerspectiveCamera(60,1,0.1,8000);
+scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+var sun=new THREE.DirectionalLight(0xffffff, 0.5); sun.position.set(100, 500, 100); scene.add(sun);
+
+var OCEAN_W=8000,OCEAN_SEGS=64;var oceanGeo=new THREE.PlaneGeometry(OCEAN_W,OCEAN_W,OCEAN_SEGS,OCEAN_SEGS);oceanGeo.rotateX(-Math.PI/2);
+var oceanOrigY=new Float32Array(oceanGeo.attributes.position.count);for(var oi=0;oi<oceanGeo.attributes.position.count;oi++)oceanOrigY[oi]=oceanGeo.attributes.position.getY(oi);
+var oceanMat=new THREE.MeshBasicMaterial({color:0x003d7a});var ocean=new THREE.Mesh(oceanGeo,oceanMat);scene.add(ocean);
+
+function addBox(g,x,y,z,w,h,d,col){var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:col}));m.position.set(x,y,z);g.add(m);return m;}
+var dockGroup=new THREE.Group();scene.add(dockGroup);
+addBox(dockGroup,350,2,60,200,4,30,0xd4c4a0);addBox(dockGroup,300,2,30,300,4,10,0xc0a878);addBox(dockGroup,300,2,-120,180,4,20,0xd4c4a0);
+
+var ownShipGrp = new THREE.Group(); scene.add(ownShipGrp);
+var hS = new THREE.Shape();
+hS.moveTo(-6, 12); hS.bezierCurveTo(-6, 20, -3, 22, 0, 22); hS.bezierCurveTo(3, 22, 6, 20, 6, 12);
+hS.lineTo(6.5, -14); hS.bezierCurveTo(6.5, -18, 4, -20, 0, -20); hS.bezierCurveTo(-4, -20, -6.5, -18, -6.5, -14); hS.closePath();
+
+var hullGeo = new THREE.ExtrudeGeometry(hS, {depth: 3.5, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.5, bevelThickness: 0.5});
+var hull = new THREE.Mesh(hullGeo, new THREE.MeshLambertMaterial({color: 0x151515})); hull.rotation.x = -Math.PI/2; hull.position.y = 0.5; ownShipGrp.add(hull);
+var deckGeo = new THREE.ExtrudeGeometry(hS, {depth: 0.2, bevelEnabled: false});
+var deck = new THREE.Mesh(deckGeo, new THREE.MeshLambertMaterial({color: 0x1e5939})); deck.rotation.x = -Math.PI/2; deck.position.y = 4.0; ownShipGrp.add(deck);
+var house = new THREE.Mesh(new THREE.BoxGeometry(7, 3.5, 7), new THREE.MeshLambertMaterial({color: 0xeeeeee})); house.position.set(0, 6, 0); ownShipGrp.add(house);
+var fMat = new THREE.MeshLambertMaterial({color: 0xdd2222});
+var funL = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 4), fMat); funL.position.set(-2, 8, -2); ownShipGrp.add(funL);
+var funR = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 4), fMat); funR.position.set(2, 8, -2); ownShipGrp.add(funR);
+var fender = new THREE.Mesh(new THREE.TorusGeometry(6.2, 0.8, 16, 32, Math.PI), new THREE.MeshLambertMaterial({color: 0x050505}));
+fender.rotation.set(Math.PI/2, Math.PI/2, 0); fender.position.set(0, 3.5, -21.5); ownShipGrp.add(fender);
+
+var WAKE_N = 6000; var wakeGeo = new THREE.BufferGeometry(); var wakeP = new Float32Array(WAKE_N * 3); wakeGeo.setAttribute('position', new THREE.BufferAttribute(wakeP, 3));
+function getCircleTex(){var c=document.createElement('canvas');c.width=16;c.height=16;var ctx=c.getContext('2d');ctx.beginPath();ctx.arc(8,8,8,0,Math.PI*2);ctx.fillStyle='#ffffff';ctx.fill();return new THREE.CanvasTexture(c);}
+var wakeMat = new THREE.PointsMaterial({color: 0xffffff, size: 6, transparent: true, opacity: 0.8, depthWrite: false, map: getCircleTex()});
+var wakeMesh = new THREE.Points(wakeGeo, wakeMat); wakeMesh.frustumCulled = false; scene.add(wakeMesh);
+var wakeActive = new Float32Array(WAKE_N), wakeVel = new Float32Array(WAKE_N * 3), wakeIdx = 0;
+function spawnWake(x,y,z,vx,vy,vz){
+  var i = wakeIdx % WAKE_N; wakeP[i*3] = x + (Math.random()-0.5)*2; wakeP[i*3+1] = y; wakeP[i*3+2] = z + (Math.random()-0.5)*2;
+  wakeVel[i*3] = vx + (Math.random()-0.5)*0.2; wakeVel[i*3+1] = vy; wakeVel[i*3+2] = vz + (Math.random()-0.5)*0.2;
+  wakeActive[i] = 1.0; wakeIdx++; wakeGeo.attributes.position.needsUpdate=true;
+}
+
+var TRAIL_MAX=3000; var trailPts=new Float32Array(TRAIL_MAX*3); var trailGeo=new THREE.BufferGeometry();
+trailGeo.setAttribute('position',new THREE.BufferAttribute(trailPts,3)); trailGeo.setDrawRange(0,0);
+var trailMat=new THREE.LineBasicMaterial({color:0x44ddff,transparent:true,opacity:0.85,depthTest:false});
+var trailLine=new THREE.Line(trailGeo,trailMat); trailLine.renderOrder=999; trailLine.frustumCulled = false; scene.add(trailLine);
+var trailCount=0, trailTimer=0;
+function addTrailPoint(){if(trailCount>=TRAIL_MAX)return;var i=trailCount*3;trailPts[i]=ship.x; trailPts[i+1]=2.0; trailPts[i+2]=ship.y;trailGeo.attributes.position.needsUpdate=true;trailCount++; trailGeo.setDrawRange(0,trailCount);}
+function clearTrail(){trailCount=0;trailTimer=0;trailGeo.setDrawRange(0,0);}
+
+function uP(){
+  var n=Date.now();if(lt===0){lt=n;return;}var dt=Math.min((n-lt)/16.67,3);lt=n;
+  
+  var pRpm = govRpm(ship.pGov), sRpm = govRpm(ship.sGov);
+  var ptE = pRpm > 0 ? Math.pow(pRpm/750, 1.5) : 0; 
+  var sbE = sRpm > 0 ? Math.pow(sRpm/750, 1.5) : 0;
+  
+  var ptR=getPortThrust(ship.pt,ship.st)*D, sbR=getStbdThrust(ship.sb,ship.st)*D;
+  var sfx=Math.sin(ptR)*ptE+Math.sin(sbR)*sbE, sfy=-Math.cos(ptR)*ptE-Math.cos(sbR)*sbE;
+  
+  var isCrabPort = (ship.pt <= -25 && ship.pt >= -65 && ship.sb >= 25 && ship.sb <= 65) && Math.abs(ship.st) < 20;
+  var isCrabStbd = (ship.pt >= 25 && ship.pt <= 65 && ship.sb <= -25 && ship.sb >= -65) && Math.abs(ship.st) < 20;
+  var isComboPort = Math.abs(ship.pt) < 15 && Math.abs(ship.sb) < 15 && ship.st <= -25 && ship.st >= -55;
+  var isComboStbd = Math.abs(ship.pt) < 15 && Math.abs(ship.sb) < 15 && ship.st >= 25 && ship.st <= 55;
+
+  var isSlidingPort = isCrabPort || isComboPort;
+  var isSlidingStbd = isCrabStbd || isComboStbd;
+  var isSliding = isSlidingPort || isSlidingStbd;
+
+  if(isSliding) {
+    if(isSlidingPort) sfx = -(Math.abs(ptE) + Math.abs(sbE)) * 0.8; 
+    else sfx = (Math.abs(ptE) + Math.abs(sbE)) * 0.8; 
+    sfy *= 0.1; ship.om *= 0.5; 
+  }
+
+  var cH=Math.cos(ship.hd), sH=Math.sin(ship.hd);
+  ship.vx+=(sfx*cH-sfy*sH)*0.00836*dt; 
+  ship.vy+=(sfx*sH+sfy*cH)*0.00836*dt;
+  
+  if(!isSliding) {
+    ship.om+=((-3.5)*(-Math.cos(ptR)*ptE)-16*(Math.sin(ptR)*ptE)+3.5*(-Math.cos(sbR)*sbE)-16*(Math.sin(sbR)*sbE))*0.00003*dt;
+  }
+  
+  var turnRate = Math.abs(ship.om);
+  var fwdDrag = Math.max(0.80, 0.98 - turnRate * 2.5); 
+  
+  ship.vx*=Math.pow(fwdDrag,dt); ship.vy*=Math.pow(fwdDrag,dt); ship.om*=Math.pow(0.975,dt);
+  var fV=ship.vx*sH-ship.vy*cH, lV=ship.vx*cH+ship.vy*sH; 
+  var latDrag = isSliding ? 0.98 : 0.93;
+  lV*=Math.pow(latDrag,dt);
+  
+  ship.vx=fV*sH+lV*cH; ship.vy=-fV*cH+lV*sH; 
+  ship.x+=ship.vx*dt; ship.y+=ship.vy*dt; ship.hd+=ship.om*dt;
+
+  trailTimer+=dt;
+  if(trailTimer>15){trailTimer=0;addTrailPoint();}
+
+  var fX=Math.sin(ship.hd), fZ=-Math.cos(ship.hd), rX=Math.cos(ship.hd), rZ=Math.sin(ship.hd);
+  var pTx = ship.x + rX*(-3.5) + fX*(-15);
+  var pTz = ship.y + rZ*(-3.5) + fZ*(-15);
+  var sTx = ship.x + rX*(3.5) + fX*(-15);
+  var sTz = ship.y + rZ*(3.5) + fZ*(-15);
+
+  if(Math.abs(ptE)>0.01 && Math.random()<0.9) {
+    var pWF = -Math.cos(ptR)*ptE*12, pWR = -Math.sin(ptR)*ptE*12;
+    for(var i=0; i<4; i++) spawnWake(pTx, 0.5, pTz, pWF*fX+pWR*rX, 0, pWF*fZ+pWR*rZ);
+  }
+  if(Math.abs(sbE)>0.01 && Math.random()<0.9) {
+    var sWF = -Math.cos(sbR)*sbE*12, sWR = -Math.sin(sbR)*sbE*12;
+    for(var i=0; i<4; i++) spawnWake(sTx, 0.5, sTz, sWF*fX+sWR*rX, 0, sWF*fZ+sWR*rZ);
+  }
+}
+
+function updateBridgeView(t){
+  var pos=oceanGeo.attributes.position;for(var wi=0;wi<pos.count;wi++){var wx=pos.getX(wi),wz=pos.getZ(wi);pos.setY(wi,oceanOrigY[wi]+Math.sin(wx*0.04+t)*0.5+Math.sin(wz*0.03+t*0.8)*0.3);}pos.needsUpdate=true;
+  ocean.position.x=ship.x;ocean.position.z=ship.y;
+  var fX=Math.sin(ship.hd),fZ=-Math.cos(ship.hd);
+  if(isThirdPersonView) {camera.position.set(ship.x - fX*40, 150, ship.y - fZ*40); camera.lookAt(ship.x + fX*10, 0, ship.y + fZ*10);} 
+  else {camera.position.set(ship.x, 14, ship.y); camera.lookAt(ship.x + fX*20, 5, ship.y + fZ*20);}
+  ownShipGrp.position.set(ship.x, 0, ship.y); ownShipGrp.rotation.y = -ship.hd;
+  
+  for(var wi2=0;wi2<WAKE_N;wi2++){
+    if(wakeActive[wi2]>0){
+      wakeActive[wi2]-=0.008; wakeP[wi2*3]+=wakeVel[wi2*3]; wakeP[wi2*3+1]+=wakeVel[wi2*3+1]; wakeP[wi2*3+2]+=wakeVel[wi2*3+2];
+      wakeVel[wi2*3]*=0.96; wakeVel[wi2*3+2]*=0.96; if(wakeActive[wi2]<=0) wakeP[wi2*3]=99999; 
+    }
+  }
+  wakeGeo.attributes.position.needsUpdate=true;
+}
+
+function uH(){
+  var spd=Math.hypot(ship.vx,ship.vy)*20;var hdgDeg=Math.round(((ship.hd*R2D)+360)%360);
+  document.getElementById('valHdg').textContent=('000'+hdgDeg).slice(-3)+'\u00B0';document.getElementById('valSpd').textContent=spd.toFixed(1)+' kts';
+  var st=Math.round(ship.st),e0=document.getElementById('valStr');if(st<0)e0.textContent='P'+Math.abs(st)+'\u00B0';else if(st>0)e0.textContent='S'+st+'\u00B0';else e0.textContent='0\u00B0';
+  document.getElementById('valPRpm').textContent=govOn(ship.pGov)?(govRpm(ship.pGov)+' RPM'):'OFF';
+  document.getElementById('valSRpm').textContent=govOn(ship.sGov)?(govRpm(ship.sGov)+' RPM'):'OFF';
+  var ps=document.getElementById('playStatus');if(playing){ps.innerHTML='▶ RUNNING';ps.style.color='#00ee88';}else{ps.innerHTML='';ps.style.color='#556655';}
+}
+
+function togglePlay(){playing=!playing;var b=document.getElementById('playBtn');if(playing){b.innerHTML='■ STOP';b.style.color='#ff5555';lt=0;}else{b.innerHTML='▶ PLAY';b.style.color='#00ee88';ship.vx=0;ship.vy=0;ship.om=0;}}
+function aS(){ship.pt=0;ship.sb=0;ship.st=0;ship.pGov=0;ship.sGov=0;ship.vx=0;ship.vy=0;ship.om=0;playing=false;document.getElementById('playBtn').innerHTML='▶ PLAY';}
+function doReset(){ship.x=0;ship.y=0;ship.hd=Math.PI/2;ship.vx=0;ship.vy=0;ship.om=0;clearTrail();aS();}
+
+// ★ 모바일 최적화 스케일링 복구 완벽 완료
+function resizeBridge(){var w=bwEl.clientWidth,h=bwEl.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
+function autoScale(){var cp=document.getElementById('controlPanel'),cw=document.getElementById('controlWrap');if(!cp||!cw)return;cp.style.transform='none';void cp.offsetWidth;cp.style.transform='scale('+Math.min(cw.clientWidth/(cp.scrollWidth+24),cw.clientHeight/(cp.scrollHeight+12),3)+')';}
+window.addEventListener('resize',function(){resizeBridge();autoScale();});
+window.addEventListener('orientationchange',function(){setTimeout(function(){resizeBridge();autoScale();},300);});
+resizeBridge();autoScale();
+
+var clock=new THREE.Clock();
+function mainLoop(){
+  requestAnimationFrame(mainLoop);var t=clock.getElapsedTime();
+  pI();if(playing)uP();updateBridgeView(t);renderer.render(scene,camera);
+  dCH();drawGov();drawCompass();
+  drawGauge('portGauge','#c84040',getPortThrust(ship.pt,ship.st));drawGauge('stbdGauge','#30a855',getStbdThrust(ship.sb,ship.st));
+  uH();
+}
+mainLoop();
+</script>
+<div style="position:fixed;bottom:2px;right:8px;font-size:9px;color:rgba(255,255,255,0.85);pointer-events:none;z-index:5;font-family:monospace">© 2026  G.Y.Lee. All rights reserved </div>
+
+</body>
+</html>
