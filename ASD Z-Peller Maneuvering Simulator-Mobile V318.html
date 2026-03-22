@@ -672,13 +672,15 @@ function uP(){
   ship.vy+=(sfx*sH+sfy*cH)*0.00836*dt;
   
   if(!isSliding) {
-    ship.om+=((-3.5)*(-Math.cos(ptR)*ptE)-16*(Math.sin(ptR)*ptE)+3.5*(-Math.cos(sbR)*sbE)-16*(Math.sin(sbR)*sbE))*0.00003*dt;
+    ship.om+=((-3.5)*(-Math.cos(ptR)*ptE)-6*(Math.sin(ptR)*ptE)+3.5*(-Math.cos(sbR)*sbE)-6*(Math.sin(sbR)*sbE))*0.000015*dt;
   }
   
   var turnRate = Math.abs(ship.om);
-  var fwdDrag = Math.max(0.80, 0.98 - turnRate * 2.5); 
+  var fwdDrag = Math.max(0.78, 0.98 - turnRate *0.152); 
   
   ship.vx*=Math.pow(fwdDrag,dt); ship.vy*=Math.pow(fwdDrag,dt); ship.om*=Math.pow(0.975,dt);
+ship.om = Math.max(-0.03, Math.min(0.03, ship.om));
+
   var fV=ship.vx*sH-ship.vy*cH, lV=ship.vx*cH+ship.vy*sH; 
   var latDrag = isSliding ? 0.98 : 0.93;
   lV*=Math.pow(latDrag,dt);
@@ -768,6 +770,5 @@ function mainLoop(){
 mainLoop();
 </script>
 <div style="position:fixed;bottom:2px;right:8px;font-size:9px;color:rgba(255,255,255,0.85);pointer-events:none;z-index:5;font-family:monospace">© 2026  G.Y.Lee. All rights reserved </div>
-
 </body>
 </html>
