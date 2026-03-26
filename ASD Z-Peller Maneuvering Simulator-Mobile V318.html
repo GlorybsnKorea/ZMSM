@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
-<title>ASD Tugboat (Z-Peller) Simulator - Mobile Optimized Pro3</title>
+<title>Tugboat Maneuvering (Z-Peller) Simulator - Mobile Optimized V326</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{width:100vw;height:100vh;overflow:hidden;background:#080e18;font-family:'Courier New',monospace;color:#c0d4e8;user-select:none;display:flex;flex-direction:column}
@@ -37,7 +37,7 @@ kbd{background:#333;border:1px solid #555;border-radius:3px;padding:1px 4px;font
 </head>
 <body>
 <div id="topbar">
-  <span style="color:#8ad870;font-weight:700;font-size:13px;letter-spacing:1px">⚓ ASD TUGBOAT (Z-Peller) system <span style="color:#446644;font-size:9px">FIXED PITCH PROPELLER</span></span>
+  <span style="color:#8ad870;font-weight:700;font-size:13px;letter-spacing:1px">⚓ Tugboat Maneuvering Simulator (Z-Peller) <span style="color:#446644;font-size:9px">FPP V-326</span></span>
   <div style="display:flex;gap:16px;align-items:center;font-size:11px;flex-wrap:wrap;">
     <span>HDG <b id="valHdg" style="color:#edc740">090°</b></span>
     <span>SPD <b id="valSpd" style="color:#4dd88a">0.0 kts</b></span>
@@ -59,7 +59,7 @@ kbd{background:#333;border:1px solid #555;border-radius:3px;padding:1px 4px;font
   
   <div id="helpPopup" style="display:none; flex-direction:column; position:absolute; top:10px; right:14px; background:rgba(15,25,20,0.95); border:2px solid rgba(80,140,90,0.7); border-radius:8px; color:#d0e0d0; z-index:2000; box-shadow:0 10px 30px rgba(0,0,0,0.8); width:310px; max-height: calc(100% - 20px); backdrop-filter:blur(3px); overflow:hidden;">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px 8px;border-bottom:1px solid rgba(255,255,255,0.15);flex-shrink:0;">
-      <b style="color:#8ad870;font-size:13px;letter-spacing:1px;">⚓ USER MANUAL (Z-Peller)</b>
+      <b style="color:#8ad870;font-size:13px;letter-spacing:1px;">⚓? Help</b>
       <button onclick="toggleHelp()" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:16px;line-height:1;margin-left:10px;">✕</button>
     </div>
     <div id="helpPopupBody" style="font-size:11px;line-height:1.9;padding:8px 16px 16px;overflow-y:auto;flex-grow:1;">
@@ -140,7 +140,7 @@ function toggleView() {
 var D=Math.PI/180, R2D=180/Math.PI;
 // ★ 초기 위치: 부두에 좌현(port,-Z) 접안 상태 (x=270, y=-5, 선수 동쪽)
 // 좌현 헐 끝 = ship.y - 8 = -4 - 8 = -12 = 부두 접안면(-12) 정확히 일치
-var ship={x:270,y:-4,vx:0,vy:0,hd:Math.PI/2,om:0,st:0,pt:0,sb:0,pGov:0,sGov:0}; 
+var ship={x:270,y:-1.5,vx:0,vy:0,hd:Math.PI/2,om:0,st:0,pt:0,sb:0,pGov:0,sGov:0}; 
 var playing=false, pk={}, lt=0;
 
 function govRpm(gov){
@@ -426,8 +426,8 @@ var ownShipGrp = new THREE.Group(); scene.add(ownShipGrp);
 
 (function buildTug(G){
   var mHull  = new THREE.MeshLambertMaterial({color:0x111111});
-  var mDeck  = new THREE.MeshLambertMaterial({color:0x28694a});
-  var mRed   = new THREE.MeshLambertMaterial({color:0xcc1a1a});
+  var mDeck  = new THREE.MeshLambertMaterial({color:0x99cc33});
+  var mRed   = new THREE.MeshLambertMaterial({color:0xff5500});
   var mWhite = new THREE.MeshLambertMaterial({color:0xeeecea});
   var mGray  = new THREE.MeshLambertMaterial({color:0x909090});
   var mDGray = new THREE.MeshLambertMaterial({color:0x404040});
@@ -537,9 +537,8 @@ var ownShipGrp = new THREE.Group(); scene.add(ownShipGrp);
   cy(0.45,0.45,0.25,10,mGray, 6.6,DY+4.6,SZ-1.2,Math.PI/2);
   sp(0.35,8,mWhtL,-6.6,DY+4.6,SZ-1.45); sp(0.35,8,mWhtL,6.6,DY+4.6,SZ-1.45);
 
-
   // ── 6. MAST ──
-  var mBY=DY+2.6+2.4+1.0, mZ=SZ+0.2;
+ var mBY=DY+2.6+2.4+1.0, mZ=SZ+0.2;
   cy(0.28,0.28,8.5,8,mWhite,0,mBY+4.25,mZ);
   cy(0.18,0.18,7.0,8,mWhite,0,mBY+8.5+3.5,mZ);
   cy(0.08,0.04,2.5,6,mWhite,0,mBY+8.5+7+1.25,mZ);
@@ -553,13 +552,61 @@ var ownShipGrp = new THREE.Group(); scene.add(ownShipGrp);
   cy(0.04,0.02,4.5,4,mWhite,1.8,mBY+19.5,mZ);
   cy(0.04,0.02,3.5,4,mWhite,-1.5,mBY+19.8,mZ);
 
+
+// ★ 1. 선체에 영향을 주지 않는 순수 노란색 전구 만들기
+  window.strobeMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 16, 16), 
+    new THREE.MeshBasicMaterial({ color: 0xffcc00 }) // 노란색
+  );
+  window.strobeMesh.position.set(0, 31.0, -3.8); // 위치는 그대로!
+  
+  // ★ 2. 코드로 직접 "별 모양 빛 갈라짐" 이미지 그리기 (도화지 세팅)
+  var canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 128;
+  var ctx = canvas.getContext('2d');
+
+  // 은은한 둥근 노란색 후광 깔아주기
+  var grd = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  grd.addColorStop(0, 'rgba(255, 255, 255, 1)');     // 중심은 하얗게
+  grd.addColorStop(0.2, 'rgba(255, 204, 0, 0.8)');   // 살짝 퍼지는 노란색
+  grd.addColorStop(1, 'rgba(255, 204, 0, 0)');       // 끝은 투명하게
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, 128, 128);
+
+  // 날카로운 4각 별(십자) 모양 그리기 (빛이 뻗어나가는 느낌)
+  ctx.beginPath();
+  ctx.moveTo(64, 10);  ctx.lineTo(68, 60);  ctx.lineTo(118, 64); ctx.lineTo(68, 68);
+  ctx.lineTo(64, 118); ctx.lineTo(60, 68);  ctx.lineTo(10, 64);  ctx.lineTo(60, 60);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.fill();
+
+  var starTex = new THREE.Texture(canvas);
+  starTex.needsUpdate = true;
+
+  // ★ 3. 항상 카메라를 쳐다보는 평면(Sprite)에 별 모양 텍스처 입혀서 전구에 달기
+  var starMat = new THREE.SpriteMaterial({
+    map: starTex,
+    color: 0xffffff,
+    transparent: true,
+    blending: THREE.AdditiveBlending, // 선체는 안 밝아지고 자기 혼자만 빛남!
+    depthWrite: false // 기둥에 파묻혀 잘리는 현상 방지
+  });
+
+  var starSprite = new THREE.Sprite(starMat);
+  starSprite.scale.set(4.0, 4.0, 1.0); // 별빛의 크기 (마음에 안 드시면 이 숫자를 조절하세요!)
+  window.strobeMesh.add(starSprite); // 전구에 별을 찰싹 붙임
+
+  window.strobeMesh.visible = false; 
+  G.add(window.strobeMesh);
+
   // ── 7. FUNNELS ──
-  cy(0.85,0.75,3.0,12,mDGray,-2.2,DY+4.5,SZ+2.0);
-  cy(0.85,0.75,3.0,12,mDGray, 2.2,DY+4.5,SZ+2.0);
-  cy(1.05,0.85,0.45,12,mBlack,-2.2,DY+6.1,SZ+2.0);
-  cy(1.05,0.85,0.45,12,mBlack, 2.2,DY+6.1,SZ+2.0);
-  cy(0.88,0.88,0.5,12,mOrange,-2.2,DY+4.0,SZ+2.0);
-  cy(0.88,0.88,0.5,12,mOrange, 2.2,DY+4.0,SZ+2.0);
+  // cy(0.85,0.75,3.0,12,mDGray,-2.2,DY+4.5,SZ+2.0);
+ //  cy(0.85,0.75,3.0,12,mDGray, 2.2,DY+4.5,SZ+2.0);
+//   cy(1.05,0.85,0.45,12,mBlack,-2.2,DY+6.1,SZ+2.0);
+ //  cy(1.05,0.85,0.45,12,mBlack, 2.2,DY+6.1,SZ+2.0);
+//  cy(0.88,0.88,0.5,12,mOrange,-2.2,DY+4.0,SZ+2.0);
+ //  cy(0.88,0.88,0.5,12,mOrange, 2.2,DY+4.0,SZ+2.0);
 
   // ── 8. DECK EQUIPMENT ──
   // ── 8. DECK EQUIPMENT (갑판 장비)  *** 수정을 해야 하는 부분 *** ──
@@ -646,8 +693,8 @@ function uP(){
   var n=Date.now();if(lt===0){lt=n;return;}var dt=Math.min((n-lt)/16.67,3);lt=n;
   
   var pRpm = govRpm(ship.pGov), sRpm = govRpm(ship.sGov);
-  var ptE = pRpm > 0 ? Math.pow(pRpm/750, 1.5) : 0; 
-  var sbE = sRpm > 0 ? Math.pow(sRpm/750, 1.5) : 0;
+  var ptE = pRpm > 0 ? Math.pow(pRpm/750, 2.5) : 0; 
+  var sbE = sRpm > 0 ? Math.pow(sRpm/750, 2.5) : 0;
   
   var ptR=getPortThrust(ship.pt,ship.st)*D, sbR=getStbdThrust(ship.sb,ship.st)*D;
   var sfx=Math.sin(ptR)*ptE+Math.sin(sbR)*sbE, sfy=-Math.cos(ptR)*ptE-Math.cos(sbR)*sbE;
@@ -676,7 +723,9 @@ var isSlidingPort = isCrabPort || isComboPort;
     // 3. 회전력 강제 정지(ship.om *= 0.5) 삭제!
     // 이제 좌우 출력이 다르면(한쪽 엔진을 더 세게 밀면) 선미가 돌아갑니다.
   }
-
+ // 1. 여기서 상황에 맞는 '선회 민감도'를 숫자로 정합니다.
+// 슬라이딩 중(isSliding)이면 아주 둔하게(0.000001), 평소엔 원하시는 민첩한 값(0.000005)으로!
+var rotGain = isSliding ? 0.000001 : 0.000005;
   var cH=Math.cos(ship.hd), sH=Math.sin(ship.hd);
   
   ship.vx+=(sfx*cH-sfy*sH)*0.00836*dt; 
@@ -685,14 +734,14 @@ var isSlidingPort = isCrabPort || isComboPort;
   // 4. [가장 중요한 수정] 회전력(타효) 계산 조건 해제!
   // 원래는 if(!isSliding) 안에 갇혀있어서 슬라이딩 중에는 타효가 발생하지 않았습니다.
   // 이제 무조건 물리 엔진이 회전력을 계산하도록 바깥으로 빼냈습니다.
-  ship.om+=((-3.5)*(-Math.cos(ptR)*ptE)-7*(Math.sin(ptR)*ptE)+3.5*(-Math.cos(sbR)*sbE)-7*(Math.sin(sbR)*sbE))*0.000008*dt;
+  ship.om+=((-15.5)*(-Math.cos(ptR)*ptE)-20*(Math.sin(ptR)*ptE)+15.5*(-Math.cos(sbR)*sbE)-20*(Math.sin(sbR)*sbE))*0.000005*dt;
   
   var turnRate = Math.abs(ship.om);
 
   var fwdDrag = Math.max(0.85, 0.98 - turnRate *0.06); 
   
   ship.vx*=Math.pow(fwdDrag,dt); ship.vy*=Math.pow(fwdDrag,dt); ship.om*=Math.pow(0.975,dt);
-ship.om = Math.max(-0.02, Math.min(0.02, ship.om));
+ship.om = Math.max(-0.04, Math.min(0.04, ship.om));
 
   var fV=ship.vx*sH-ship.vy*cH, lV=ship.vx*cH+ship.vy*sH; 
   var latDrag = isSliding ? 0.98 : 0.93;
@@ -728,6 +777,21 @@ function updateBridgeView(t){
   var pos=oceanGeo.attributes.position;for(var wi=0;wi<pos.count;wi++){var wx=pos.getX(wi),wz=pos.getZ(wi);pos.setY(wi,oceanOrigY[wi]+Math.sin(wx*0.04+t)*0.5+Math.sin(wz*0.03+t*0.8)*0.3);}pos.needsUpdate=true;
   ocean.position.x=ship.x;ocean.position.z=ship.y;
   var fX=Math.sin(ship.hd),fZ=-Math.cos(ship.hd);
+// ★ 3. 클러치 작동 시 "전구 보이기/숨기기(visible)" 깜빡임 로직
+  if (window.strobeMesh) {
+    // 좌/우현 거버너 중 하나라도 들어가면 클러치 ON
+    var isClutchOn = (ship.pGov > 0 || ship.sGov > 0);
+    
+    if (isClutchOn) {
+      // 1초 주기로 0.5초는 나타나고, 0.5초는 사라짐 (확실한 점멸!)
+      window.strobeMesh.visible = (t % 1.0 < 0.5);
+    } else {
+      // 클러치를 빼면 즉시 화면에서 전구를 숨김
+      window.strobeMesh.visible = false;
+    }
+  }
+
+
   if(isThirdPersonView) {
     // ★ NORTH-UP 고정 방위 드론뷰
     // 카메라 방위 고정 → 부두·해면 세계 오브젝트 화면에서 고정
