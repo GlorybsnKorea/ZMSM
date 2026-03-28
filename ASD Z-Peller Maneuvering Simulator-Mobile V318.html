@@ -734,7 +734,7 @@ var rotGain = isSliding ? 0.000001 : 0.000005;
   // 4. [가장 중요한 수정] 회전력(타효) 계산 조건 해제!
   // 원래는 if(!isSliding) 안에 갇혀있어서 슬라이딩 중에는 타효가 발생하지 않았습니다.
   // 이제 무조건 물리 엔진이 회전력을 계산하도록 바깥으로 빼냈습니다.
-  ship.om+=((-15.5)*(-Math.cos(ptR)*ptE)-20*(Math.sin(ptR)*ptE)+15.5*(-Math.cos(sbR)*sbE)-20*(Math.sin(sbR)*sbE))*0.000005*dt;
+  ship.om+=((-15.5)*(-Math.cos(ptR)*ptE)-20*(Math.sin(ptR)*ptE)+15.5*(-Math.cos(sbR)*sbE)-20*(Math.sin(sbR)*sbE))*0.0000035*dt;
   
   var turnRate = Math.abs(ship.om);
 
