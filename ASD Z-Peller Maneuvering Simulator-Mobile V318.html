@@ -273,6 +273,14 @@ function dCH(){
   c.beginPath(); c.arc(0,0,12,0,Math.PI*2); c.fillStyle='#111'; c.fill();
   c.beginPath(); c.arc(0,-wr+6,9,0,Math.PI*2); c.fillStyle='#bbb'; c.fill();
   c.beginPath(); c.arc(0,-wr+6,6,0,Math.PI*2); c.fillStyle='#000'; c.fill();
+  
+  // ★ 0° 데텐트 마커: 핸들 하단(0° 기준점)에 노란 삼각형 표시
+  c.save(); c.rotate(-ship.st * D); // 세계 좌표 기준 (항상 아래 방향)
+  c.beginPath(); c.moveTo(0, wr+10); c.lineTo(-5, wr+18); c.lineTo(5, wr+18); c.closePath();
+  c.fillStyle = (Math.abs(ship.st) <= 5) ? '#00ff88' : 'rgba(255,220,0,0.5)';
+  c.fill();
+  c.restore();
+  
   c.restore();
 }
 
@@ -291,7 +299,10 @@ function doThY_Combo(cY, mode) {
 function doStXY_Combo(cX, cY, startAngle, startSt) {
   var r = cc.getBoundingClientRect(); var x = (cX - r.left) / r.width * 260, y = (cY - r.top) / r.height * 235;
   var angle = Math.atan2(x - 130, -(y - 185)) * R2D;
-  ship.st = Math.max(-90, Math.min(90, startSt + (angle - startAngle)));
+  var newSt = Math.max(-90, Math.min(90, startSt + (angle - startAngle)));
+  // ★ 0° 스냅 데텐트: ±5° 이내이면 0°으로 자동 고정
+  if (Math.abs(newSt) <= 5) newSt = 0;
+  ship.st = newSt;
 }
 function getComboHit(cX, cY) {
   var r = cc.getBoundingClientRect(), x = (cX - r.left) / r.width * 260, y = (cY - r.top) / r.height * 235;
@@ -347,8 +358,19 @@ window.addEventListener('touchmove', function(e) {
     else if (info.mode === 'gvP' || info.mode === 'gvS') { doGovY(t.clientY, info.mode === 'gvP'); }
   }
 }, {passive: false});
-window.addEventListener('mouseup', function() { mouseDrag = null; });
-window.addEventListener('touchend', function(e) {for (var i = 0; i < e.changedTouches.length; i++) {delete touches[e.changedTouches[i].identifier];}});
+window.addEventListener('mouseup', function() {
+  // ★ 핸들 놓을 때도 ±5° 이내면 0°으로 스냅
+  if (mouseDrag === 'wh' && Math.abs(ship.st) <= 5) ship.st = 0;
+  mouseDrag = null;
+});
+window.addEventListener('touchend', function(e) {
+  for (var i = 0; i < e.changedTouches.length; i++) {
+    var info = touches[e.changedTouches[i].identifier];
+    // ★ 터치 핸들 놓을 때도 ±5° 이내면 0°으로 스냅
+    if (info && info.mode === 'wh' && Math.abs(ship.st) <= 5) ship.st = 0;
+    delete touches[e.changedTouches[i].identifier];
+  }
+});
 
 function pI(){
   if(pk['a']||pk['A'])ship.st=Math.max(-90,ship.st-0.6);if(pk['d']||pk['D'])ship.st=Math.min(90,ship.st+0.6);
