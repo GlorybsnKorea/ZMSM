@@ -37,7 +37,7 @@ kbd{background:#333;border:1px solid #555;border-radius:3px;padding:1px 4px;font
 </head>
 <body>
 <div id="topbar">
-  <span style="color:#8ad870;font-weight:700;font-size:13px;letter-spacing:1px">⚓ Tugboat Maneuvering Simulator (Z-Peller) <span style="color:#446644;font-size:9px">FPP V-402</span></span>
+  <span style="color:#8ad870;font-weight:700;font-size:13px;letter-spacing:1px">⚓ Tugboat Maneuvering Simulator (Z-Peller) <span style="color:#446644;font-size:9px">FPP V-422</span></span>
   <div style="display:flex;gap:16px;align-items:center;font-size:11px;flex-wrap:wrap;">
     <span>HDG <b id="valHdg" style="color:#edc740">090°</b></span>
     <span>SPD <b id="valSpd" style="color:#4dd88a">0.0 kts</b></span>
@@ -224,6 +224,13 @@ function drawGovColumn(c,gov,col,label,isPort){
 function drawGov(){
   var c=govCtx;c.clearRect(0,0,220,215);rR(c,2,2,216,211,8);var pgrd=c.createLinearGradient(0,0,0,215);pgrd.addColorStop(0,'rgba(85,115,78,0.97)');pgrd.addColorStop(1,'rgba(70,100,65,0.97)');c.fillStyle=pgrd;c.fill();c.strokeStyle='rgba(120,160,110,0.5)';c.lineWidth=1.5;c.stroke();
   c.beginPath();c.moveTo(110,8);c.lineTo(110,207);c.strokeStyle='rgba(100,140,90,0.3)';c.lineWidth=1;c.stroke();
+  // ★ 중앙 동시조작 구역 시각적 표시
+  c.save();
+  c.strokeStyle='rgba(255,220,80,0.25)';c.lineWidth=1;c.setLineDash([3,3]);
+  c.strokeRect(97,20,26,137);c.setLineDash([]);
+  c.fillStyle='rgba(255,220,80,0.55)';c.font='bold 7px monospace';c.textAlign='center';
+  c.fillText('BOTH',110,12);
+  c.restore();
   drawGovColumn(c,ship.pGov,'#ff6666','PORT',true);drawGovColumn(c,ship.sGov,'#66ff88','STBD',false);
 }
 
@@ -254,6 +261,19 @@ function dCH(){
   drawSlot(90, 70, ship.pt, 'PORT', 'rgb(220,60,60)');
   drawSlot(170, 70, ship.sb, 'STBD', 'rgb(60,220,100)');
   
+  // ★ 중앙 동시조작 구역 시각적 표시
+  c.save();
+  c.strokeStyle = 'rgba(255,220,80,0.25)';
+  c.lineWidth = 1;
+  c.setLineDash([3, 3]);
+  c.strokeRect(112, 22, 36, 96);
+  c.setLineDash([]);
+  c.fillStyle = 'rgba(255,220,80,0.55)';
+  c.font = 'bold 8px monospace';
+  c.textAlign = 'center';
+  c.fillText('BOTH', 130, 15);
+  c.restore();
+  
   // 중앙: 콤비네이션 각도 표시기
   rR(c, 130-24, 125-10, 48, 20, 4); c.fillStyle='rgba(0,0,0,0.8)'; c.fill();
   var stV=Math.round(ship.st), stTxt=stV===0?'0\u00B0':(stV<0?'P '+Math.abs(stV)+'\u00B0':'S '+stV+'\u00B0');
@@ -273,14 +293,6 @@ function dCH(){
   c.beginPath(); c.arc(0,0,12,0,Math.PI*2); c.fillStyle='#111'; c.fill();
   c.beginPath(); c.arc(0,-wr+6,9,0,Math.PI*2); c.fillStyle='#bbb'; c.fill();
   c.beginPath(); c.arc(0,-wr+6,6,0,Math.PI*2); c.fillStyle='#000'; c.fill();
-  
-  // ★ 0° 데텐트 마커: 핸들 하단(0° 기준점)에 노란 삼각형 표시
-  c.save(); c.rotate(-ship.st * D); // 세계 좌표 기준 (항상 아래 방향)
-  c.beginPath(); c.moveTo(0, wr+10); c.lineTo(-5, wr+18); c.lineTo(5, wr+18); c.closePath();
-  c.fillStyle = (Math.abs(ship.st) <= 5) ? '#00ff88' : 'rgba(255,220,0,0.5)';
-  c.fill();
-  c.restore();
-  
   c.restore();
 }
 
@@ -288,6 +300,9 @@ function dCH(){
 // 3. 입력 이벤트
 // =========================================================================
 var mouseDrag=null, wSA=0, wSS=0, touches={};
+
+// ★ 중앙 동시 조작용 커서 (손가락 펴진 모양)
+var CURSOR_OPEN_HAND = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='30'%3E%3Crect x='1' y='14' width='4' height='12' rx='2' fill='%23fff' stroke='%23222' stroke-width='1.2'/%3E%3Crect x='6' y='9' width='4' height='17' rx='2' fill='%23fff' stroke='%23222' stroke-width='1.2'/%3E%3Crect x='12' y='7' width='4' height='19' rx='2' fill='%23fff' stroke='%23222' stroke-width='1.2'/%3E%3Crect x='18' y='9' width='4' height='17' rx='2' fill='%23fff' stroke='%23222' stroke-width='1.2'/%3E%3Crect x='23' y='14' width='4' height='12' rx='2' fill='%23fff' stroke='%23222' stroke-width='1.2'/%3E%3Crect x='1' y='22' width='26' height='8' rx='3' fill='%23fff' stroke='%23222' stroke-width='1.2'/%3E%3C/svg%3E\") 14 7, grab";
 
 function getCX_Combo(e) {var r = cc.getBoundingClientRect(); return (e.clientX - r.left) / r.width * 260;}
 function getCY_Combo(e) {var r = cc.getBoundingClientRect(); return (e.clientY - r.top) / r.height * 235;}
@@ -299,14 +314,14 @@ function doThY_Combo(cY, mode) {
 function doStXY_Combo(cX, cY, startAngle, startSt) {
   var r = cc.getBoundingClientRect(); var x = (cX - r.left) / r.width * 260, y = (cY - r.top) / r.height * 235;
   var angle = Math.atan2(x - 130, -(y - 185)) * R2D;
-  var newSt = Math.max(-90, Math.min(90, startSt + (angle - startAngle)));
-  // ★ 0° 스냅 데텐트: ±5° 이내이면 0°으로 자동 고정
-  if (Math.abs(newSt) <= 5) newSt = 0;
-  ship.st = newSt;
+  ship.st = Math.max(-90, Math.min(90, startSt + (angle - startAngle)));
 }
 function getComboHit(cX, cY) {
   var r = cc.getBoundingClientRect(), x = (cX - r.left) / r.width * 260, y = (cY - r.top) / r.height * 235;
-  if (y > 135) return 'wh'; if (x < 130) return 'pt'; return 'sb';
+  if (y > 135) return 'wh';
+  // ★ 중앙 구역(좌·우현 레버 사이): 양쪽 동시 조작
+  if (x >= 112 && x <= 148) return 'both';
+  if (x < 130) return 'pt'; return 'sb';
 }
 
 cc.addEventListener('mousedown', function(e) {
@@ -314,7 +329,8 @@ cc.addEventListener('mousedown', function(e) {
   if (m === 'wh') {
     var r = cc.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 260, y = (e.clientY - r.top) / r.height * 235;
     wSA = Math.atan2(x - 130, -(y - 185)) * R2D; wSS = ship.st;
-  } else { doThY_Combo(e.clientY, m); }
+  } else if (m === 'both') { doThY_Combo(e.clientY, 'pt'); doThY_Combo(e.clientY, 'sb'); }
+  else { doThY_Combo(e.clientY, m); }
 });
 cc.addEventListener('touchstart', function(e) {
   e.preventDefault();
@@ -323,30 +339,46 @@ cc.addEventListener('touchstart', function(e) {
     if (m === 'wh') {
       var r = cc.getBoundingClientRect(), x = (t.clientX - r.left) / r.width * 260, y = (t.clientY - r.top) / r.height * 235;
       info.wSA = Math.atan2(x - 130, -(y - 185)) * R2D; info.wSS = ship.st;
-    } else { doThY_Combo(t.clientY, m); }
+    } else if (m === 'both') { doThY_Combo(t.clientY, 'pt'); doThY_Combo(t.clientY, 'sb'); }
+    else { doThY_Combo(t.clientY, m); }
     touches[t.identifier] = info;
   }
 }, {passive: false});
 
 function getCY(e, cv){var r=cv.getBoundingClientRect(); var cY=e.clientY; if(e.touches && e.touches.length>0) cY=e.touches[0].clientY; return (cY-r.top)/r.height*cv.height;}
 function isPortGov(cX) {var r = govCv.getBoundingClientRect(); return (cX - r.left) / r.width < 0.5;}
+// ★ 가바나 레버 히트 판정: 중앙 구역에서 양쪽 동시 조작
+function getGovHit(cX) {
+  var r = govCv.getBoundingClientRect(), rx = (cX - r.left) / r.width;
+  if (rx >= 0.44 && rx <= 0.56) return 'bothGov';
+  return rx < 0.5 ? 'gvP' : 'gvS';
+}
 function doGovY(cY, isPort) {
   var r = govCv.getBoundingClientRect(); var v = (1 - ((cY - r.top) / r.height * 215 - 22) / (155 - 22)) * 10;
   v = Math.max(0, Math.min(10, v)); if (isPort) ship.pGov = v; else ship.sGov = v;
 }
 
-govCv.addEventListener('mousedown', function(e) {mouseDrag = isPortGov(e.clientX) ? 'gvP' : 'gvS'; doGovY(e.clientY, mouseDrag === 'gvP');});
+govCv.addEventListener('mousedown', function(e) {
+  var m = getGovHit(e.clientX); mouseDrag = m;
+  if (m === 'bothGov') { doGovY(e.clientY, true); doGovY(e.clientY, false); }
+  else doGovY(e.clientY, m === 'gvP');
+});
 govCv.addEventListener('touchstart', function(e) {
   e.preventDefault();
   for (var i = 0; i < e.changedTouches.length; i++) {
-    var t = e.changedTouches[i], ip = isPortGov(t.clientX); touches[t.identifier] = { mode: ip ? 'gvP' : 'gvS' }; doGovY(t.clientY, ip);
+    var t = e.changedTouches[i], m = getGovHit(t.clientX);
+    touches[t.identifier] = { mode: m };
+    if (m === 'bothGov') { doGovY(t.clientY, true); doGovY(t.clientY, false); }
+    else doGovY(t.clientY, m === 'gvP');
   }
 }, {passive: false});
 
 window.addEventListener('mousemove', function(e) {
   if (!mouseDrag) return;
   if (mouseDrag === 'wh') { doStXY_Combo(e.clientX, e.clientY, wSA, wSS); }
+  else if (mouseDrag === 'both') { doThY_Combo(e.clientY, 'pt'); doThY_Combo(e.clientY, 'sb'); }
   else if (mouseDrag === 'pt' || mouseDrag === 'sb') { doThY_Combo(e.clientY, mouseDrag); }
+  else if (mouseDrag === 'bothGov') { doGovY(e.clientY, true); doGovY(e.clientY, false); }
   else if (mouseDrag === 'gvP' || mouseDrag === 'gvS') { doGovY(e.clientY, mouseDrag === 'gvP'); }
 });
 window.addEventListener('touchmove', function(e) {
@@ -354,23 +386,31 @@ window.addEventListener('touchmove', function(e) {
   for (var i = 0; i < e.changedTouches.length; i++) {
     var t = e.changedTouches[i], info = touches[t.identifier]; if (!info) continue;
     if (info.mode === 'wh') { doStXY_Combo(t.clientX, t.clientY, info.wSA, info.wSS); }
+    else if (info.mode === 'both') { doThY_Combo(t.clientY, 'pt'); doThY_Combo(t.clientY, 'sb'); }
     else if (info.mode === 'pt' || info.mode === 'sb') { doThY_Combo(t.clientY, info.mode); }
+    else if (info.mode === 'bothGov') { doGovY(t.clientY, true); doGovY(t.clientY, false); }
     else if (info.mode === 'gvP' || info.mode === 'gvS') { doGovY(t.clientY, info.mode === 'gvP'); }
   }
 }, {passive: false});
-window.addEventListener('mouseup', function() {
-  // ★ 핸들 놓을 때도 ±5° 이내면 0°으로 스냅
-  if (mouseDrag === 'wh' && Math.abs(ship.st) <= 5) ship.st = 0;
-  mouseDrag = null;
+window.addEventListener('mouseup', function() { mouseDrag = null; });
+window.addEventListener('touchend', function(e) {for (var i = 0; i < e.changedTouches.length; i++) {delete touches[e.changedTouches[i].identifier];}});
+
+// ★ 커서 동적 업데이트: 중앙 구역에서 손가락 펴진 모양
+cc.addEventListener('mousemove', function(e) {
+  if (mouseDrag) return;
+  var m = getComboHit(e.clientX, e.clientY);
+  if (m === 'both') cc.style.cursor = CURSOR_OPEN_HAND;
+  else if (m === 'wh') cc.style.cursor = 'grab';
+  else cc.style.cursor = 'grab'; // pt or sb: 손 모양
 });
-window.addEventListener('touchend', function(e) {
-  for (var i = 0; i < e.changedTouches.length; i++) {
-    var info = touches[e.changedTouches[i].identifier];
-    // ★ 터치 핸들 놓을 때도 ±5° 이내면 0°으로 스냅
-    if (info && info.mode === 'wh' && Math.abs(ship.st) <= 5) ship.st = 0;
-    delete touches[e.changedTouches[i].identifier];
-  }
+cc.addEventListener('mouseleave', function() { if (!mouseDrag) cc.style.cursor = 'grab'; });
+
+govCv.addEventListener('mousemove', function(e) {
+  if (mouseDrag) return;
+  var m = getGovHit(e.clientX);
+  govCv.style.cursor = (m === 'bothGov') ? CURSOR_OPEN_HAND : 'grab'; // 개별: 손 모양
 });
+govCv.addEventListener('mouseleave', function() { if (!mouseDrag) govCv.style.cursor = 'pointer'; });
 
 function pI(){
   if(pk['a']||pk['A'])ship.st=Math.max(-90,ship.st-0.6);if(pk['d']||pk['D'])ship.st=Math.min(90,ship.st+0.6);
